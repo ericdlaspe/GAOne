@@ -82,7 +82,8 @@ function draw() {
   }
 
   if (SAVE_OUTPUT) {
-    const basename = TITLE + SEED
+    const timestamp = Date.now();
+    const basename = TITLE + ':' + timestamp + ':' + SEED
 
     if (OUTPUT_SVG)
       save(basename + '.svg');
