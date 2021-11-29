@@ -1,4 +1,4 @@
-class BeanStalk {
+class Stalk {
   constructor(x, y) {
     this.x = x
     this.y = y
@@ -13,22 +13,23 @@ class BeanStalk {
 
   draw(iterations) {
     push()
-    let curr = createVector(this.x, this.y)
+    let next = createVector(this.x, this.y)
 
     for (let i = 0; i < iterations; i++) {
-      translate(curr.x, curr.y)
+      translate(next.x, next.y)
       const angleDelta = this.getAngleMax() - this.getAngleMin()
       const halfAngle = angleDelta * 0.5 + this.getAngleMin()
       const angle = randomGaussian(halfAngle, angleDelta * 0.25)
-      const next = p5.Vector.fromAngle(angle, this.getLength())
+      next = p5.Vector.fromAngle(angle, this.getLength())
 
-
-      line(curr.x, curr.y, next.x, next.y)
-
-      curr = next
+      line(0, 0, next.x, next.y)
     }
     pop()
   }
+}
+
+function fitness() {
+  return 1.0
 }
 
 function setup() {
@@ -47,6 +48,7 @@ function setup() {
   }
 
   colorMode(HSB)
+  angleMode(DEGREES)
 }
 
 function draw() {
@@ -58,10 +60,10 @@ function draw() {
   strokeWeight(2)
 
   // LEVERS
-  const SEED = 0
+  const SEED = 209
   // Fixed population size
   const population = 100
-  const yStart = height * 0.95
+  const yStart = height
   const growthSteps = 1000
 
   // DERIVED
@@ -73,7 +75,8 @@ function draw() {
 
   // Create initial population
   for (let i = 0; i < population; i++) {
-    stalks[i] = new BeanStalk(i * xSpread, yStart)
+    stalks[i] = new Stalk(i * xSpread, yStart)
+    // stalks[i] = new Stalk(width/2, yStart)
   }
 
   // Draw
