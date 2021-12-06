@@ -9,12 +9,12 @@ console.log('WIDTH: ' + WIDTH + 'HEIGHT: ' + HEIGHT)
 
 const TIMESTAMP = Date.now();
 const SEED = TIMESTAMP
-const POPULATION = 20
+const POPULATION = 1000
 const Y_START = HEIGHT
-const Y_GOAL = HEIGHT * 0.4
+const Y_GOAL = HEIGHT * 0.33
 console.log('Y_GOAL: ' + Y_GOAL)
 // Stalks have until GROWTH_STEPS to make it into the end zone
-const GROWTH_STEPS = 1000
+const GROWTH_STEPS = 50
 
 // Returns the heading (degrees or radians) given start and end vectors
 function getHeading(vector1, vector2) {
@@ -45,9 +45,8 @@ class Stalk {
   constructor(x, y) {
     this.x = x
     this.y = y
-    this.angleStdDev = random(PI * 0.05, PI * 0.2)
-    // this.length = randomGaussian(50, 5)
-    this.length = 50
+    this.angleStdDev = random(0, 45)
+    this.length = random(2, 20)
 
     this.fit = false
   }
@@ -61,8 +60,8 @@ class Stalk {
   }
 
   nextAngle() {
-    return -92
-    // return randomGaussian(PI + HALF_PI, this.getAngleStdDev())
+    // return -92
+    return randomGaussian(-90, this.getAngleStdDev())
   }
 
   static reachedGoal(x, y) {
@@ -73,47 +72,26 @@ class Stalk {
 
   // Draw runs the simulation at the same time
   draw(iterations) {
-    let [xA, yA] = [0, 0]
-
     const tf = new Transformer()
     tf.push()
     tf.translate(this.x, this.y)
-    console.assert(tf.x = this.x)
-    console.assert(tf.y = this.y)
-    // let v1 = createVector(0, 0)
-    // let a = this.nextAngle()
-    // let v2 = createVector(cos(a) * this.length, sin(a) * this.length)
 
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < iterations; i++) {
       let v1 = createVector(0, 0)
       let a = this.nextAngle()
       let v2 = createVector(cos(a) * this.length, sin(a) * this.length)
-      dot(v2)
-      bline(v1, v2)
+      // dot(v2)
+      // bline(v1, v2)
+      line(v1.x, v1.y, v2.x, v2.y)
       tf.translate(v2.x, v2.y)
       tf.rotate(90 + a)
-    }
 
-    console.log(`(${tf.x}, ${tf.y}`)
-
-
-    if (Stalk.reachedGoal(tf.x, tf.y)) {
-      xA = tf.x
-      yA = tf.y
-      // push()
-      // noFill()
-      // stroke(0)
-      // strokeWeight(2)
-      // circle(tf.x, tf.y, 30)
-      // pop()
-      this.setFit(true)
+      if (Stalk.reachedGoal(tf.x, tf.y)) {
+        this.setFit(true)
+      }
     }
 
     tf.pop()
-    push()
-    noFill()
-    circle(xA, yA, 24)
-    pop()
   }
 
   static mate(stalk1, stalk2) {
@@ -162,45 +140,41 @@ function draw() {
                    color(248, 27, 35)] // independence
   background(palette[0])
   stroke(palette[1])
-  strokeWeight(2)
+  strokeWeight(1)
 
   const xSpread = WIDTH / POPULATION
 
   randomSeed(SEED)
   stalks = []
 
-  for (let i = 0; i < WIDTH; i += 100) {
-    line(i, 0, i, HEIGHT)
-  }
-
   drawGoal()
 
-  stalk = new Stalk(WIDTH/2, HEIGHT - 100)
-  stalk.draw(10)
-  // // Create initial population
-  // for (let i = 0; i < POPULATION; i++) {
-  //   stalks[i] = new Stalk(i * xSpread, Y_START)
-  // }
 
+  // Create initial population
+  for (let i = 0; i < POPULATION; i++) {
+    stalks[i] = new Stalk(i * xSpread, Y_START)
+  }
 
-  // for (let i = 0; i < POPULATION; i++) {
-  //   stalks[i].draw(GROWTH_STEPS)
-  // }
+  // Draw / eval population
+  for (let i = 0; i < POPULATION; i++) {
+    stalks[i].draw(GROWTH_STEPS)
+  }
 
   // Get fit population
-  // const fitStalks = stalks.filter(stalk => stalk.getFit())
+  const fitStalks = stalks.filter(stalk => stalk.getFit())
+  console.log("Fit pop: " + fitStalks.length)
 
 
 
 
-  // if (SAVE_OUTPUT) {
-  //   const basename = TITLE + ':' + TIMESTAMP + ':' + SEED
+  if (SAVE_OUTPUT) {
+    const basename = TITLE + ':' + TIMESTAMP + ':' + SEED
 
-  //   if (OUTPUT_SVG)
-  //     save(basename + '.svg');
-  //   else
-  //     save(basename + '.png');
-  // }
+    if (OUTPUT_SVG)
+      save(basename + '.svg');
+    else
+      save(basename + '.png');
+  }
 
   noLoop()
 }
