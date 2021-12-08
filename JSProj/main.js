@@ -10,7 +10,7 @@ console.log('WIDTH: ' + WIDTH + 'HEIGHT: ' + HEIGHT)
 const TIMESTAMP = Date.now();
 const SEED = TIMESTAMP
 const POPULATION = 1000
-const GENERATIONS = 50
+const GENERATIONS = 100
 const Y_START = HEIGHT - 100
 const Y_GOAL = HEIGHT * 0.33
 console.log('Y_GOAL: ' + Y_GOAL)
