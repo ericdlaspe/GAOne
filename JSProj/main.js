@@ -10,12 +10,12 @@ console.log('WIDTH: ' + WIDTH + 'HEIGHT: ' + HEIGHT)
 const TIMESTAMP = Date.now();
 const SEED = TIMESTAMP
 const POPULATION = 1000
-const GENERATIONS = 100
-const Y_START = HEIGHT - 100
+const GENERATIONS = 50
+const Y_START = HEIGHT
 const Y_GOAL = HEIGHT * 0.33
 console.log('Y_GOAL: ' + Y_GOAL)
 // Stalks have until GROWTH_STEPS to make it into the end zone
-const GROWTH_STEPS = 200
+const GROWTH_STEPS = 150
 
 // Returns the heading (degrees or radians) given start and end vectors
 function getHeading(vector1, vector2) {
@@ -78,6 +78,7 @@ class Stalk {
 
   getFit() { return this.fit }
   setFit(tf) { this.fit = tf ? true : false }
+  clearFit() { this.fit = false}
 
   nextAngle() {
     // return -92
@@ -92,7 +93,7 @@ class Stalk {
 
   // Draw runs the simulation at the same time
   draw(iterations) {
-    const tf = new Transformer(0, 0, 0, 1)
+    const tf = new Transformer()
     tf.push()
     tf.translate(this.x, this.y)
 
@@ -112,6 +113,10 @@ class Stalk {
     }
 
     tf.pop()
+  }
+
+  static clone(stalk) {
+    return new Stalk(0, 0, stalk.getAngleStdDev(), stalk.getLength())
   }
 
   // Each gene will be either a copy of one of the parents' genes
@@ -256,7 +261,9 @@ function draw() {
 
     // Fill in next gen with random survivors from the original pop
     while (nextGenStalks.length < POPULATION) {
-      nextGenStalks.push(stalks[Math.floor(random(stalks.length))])
+      const survivor = stalks[Math.floor(random(stalks.length))]
+      const clone = Stalk.clone(survivor)
+      nextGenStalks.push(clone)
     }
 
     nextGenStalks = shuffleArray(nextGenStalks)
