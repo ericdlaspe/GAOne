@@ -10,11 +10,12 @@ console.log('WIDTH: ' + WIDTH + 'HEIGHT: ' + HEIGHT)
 const TIMESTAMP = Date.now();
 const SEED = TIMESTAMP
 const POPULATION = 1000
-const Y_START = HEIGHT
+const GENERATIONS = 50
+const Y_START = HEIGHT - 100
 const Y_GOAL = HEIGHT * 0.33
 console.log('Y_GOAL: ' + Y_GOAL)
 // Stalks have until GROWTH_STEPS to make it into the end zone
-const GROWTH_STEPS = 50
+const GROWTH_STEPS = 200
 
 // Returns the heading (degrees or radians) given start and end vectors
 function getHeading(vector1, vector2) {
@@ -40,24 +41,43 @@ function bline(v1, v2) {
   pop()
 }
 
+// Fisher-Yates shuffle algorithm implementation
+// from https://www.w3docs.com/snippets/javascript/how-to-randomize-shuffle-a-javascript-array.html
+function shuffleArray(array) {
+  let curId = array.length;
+  // There remain elements to shuffle
+  while (curId !== 0) {
+    // Pick a remaining element
+    let randId = Math.floor(random() * curId)
+    curId -= 1
+    // Swap it with the current element
+    let tmp = array[curId]
+    array[curId] = array[randId]
+    array[randId] = tmp
+  }
+
+  return array
+}
 
 class Stalk {
-  constructor(x, y) {
+  constructor(x, y, angleStdDev = null, length = null) {
     this.x = x
     this.y = y
     this.angleStdDev = random(0, 45)
-    this.length = random(2, 20)
+    this.length = random(2, 5)
 
     this.fit = false
   }
+  getX() { return this.x }
+  setX(x) { this.x = x }
+  getY() { return this.y }
+  setY(y) { this.y = y }
 
   getAngleStdDev() { return this.angleStdDev }
   getLength() { return this.length }
 
   getFit() { return this.fit }
-  setFit(tf) {
-    this.fit = tf ? true : false
-  }
+  setFit(tf) { this.fit = tf ? true : false }
 
   nextAngle() {
     // return -92
@@ -72,7 +92,7 @@ class Stalk {
 
   // Draw runs the simulation at the same time
   draw(iterations) {
-    const tf = new Transformer()
+    const tf = new Transformer(0, 0, 0, 1)
     tf.push()
     tf.translate(this.x, this.y)
 
@@ -94,25 +114,63 @@ class Stalk {
     tf.pop()
   }
 
+  // Each gene will be either a copy of one of the parents' genes
+  // or a 50/50 split between the two
   static mate(stalk1, stalk2) {
-    
+    const angleRand = random()
+    const lengthRand = random()
+    let a, l
+
+    if (angleRand < 0.333)
+      a = stalk1.getAngleStdDev()
+    else if (angleRand < 0.666)
+      a = (stalk1.getAngleStdDev() + stalk2.getAngleStdDev()) / 2
+    else
+      a = stalk2.getAngleStdDev()
+
+    if (lengthRand < 0.333)
+      l = stalk1.getLength()
+    else if (lengthRand < 0.666)
+      l = (stalk1.getLength() + stalk2.getLength()) / 2
+    else
+      l = stalk2.getLength()
+
+    return new Stalk(0, 0, a, l)
   }
 
+  // Add or subtract up to about 50% from each gene
   // Returns a new Stalk instance derived from the parameter Stalk
   static mutate(stalk) {
+    let a = stalk.getAngleStdDev()
+    let l = stalk.getLength()
+    a += a * randomGaussian(0, 0.2)
+    l += l * randomGaussian(0, 0.2)
 
+    return new Stalk(0, 0, a, l)
   }
 
-}
+  static getOffspring(stalks) {
+    const populus = []
+    // Pair each with the two next to it so we get N-1 offspring
+    // from N parents
+    for (let i = 1; i < stalks.length; i++) {
+      populus.push(Stalk.mate(stalks[i - 1], stalks[i]))
+    }
 
-function drawGoal() {
-  push()
-  fill(color(0, 100, 100, 0.35))
-  noStroke()
-  rect(0, 0, width, Y_GOAL)
-  pop()
-}
+    // 5% infant mortality rate
+    return populus.slice(Math.floor(populus.length * 0.05))
+  }
 
+  static getMutations(stalks) {
+    const populus = []
+    for (let i = 0; i < stalks.length; i++) {
+      populus.push(Stalk.mutate(stalks[i]))
+    }
+
+    // 5% mutation death rate
+    return populus.slice(Math.floor(populus.length * 0.05))
+  }
+}
 
 function setup() {
   OUTPUT_SVG = false
@@ -130,42 +188,86 @@ function setup() {
   const pixelD = pixelDensity()
   pixelDensity(pixelD)
   // Max values for HSB: (360, 100, 100, 1.0)
-  colorMode(HSB)
+  colorMode(HSB, 360, 100, 100)
   angleMode(DEGREES)
 }
 
 
 function draw() {
-  const palette = [color(40, 7, 100), // floral white
-                   color(248, 27, 35)] // independence
+  const palette = [color('#fff9ed'), // floral white
+                   color('#45425a'), // independence
+                   color('#e24e1b'), // flame
+                   color('#119da4'), // viridian green
+                   color('#da7635'), // chocolate web
+                   ] 
   background(palette[0])
   stroke(palette[1])
-  strokeWeight(1)
+  strokeWeight(0.5)
 
   const xSpread = WIDTH / POPULATION
 
   randomSeed(SEED)
-  stalks = []
+  let stalks = []
+
+  function drawGoal() {
+    push()
+    let goalColor = palette[2]
+    goalColor.setAlpha(.5)
+    fill(goalColor)
+    noStroke()
+    rect(0, HEIGHT * 0.33, width, HEIGHT)
+    pop()
+  }
 
   drawGoal()
-
 
   // Create initial population
   for (let i = 0; i < POPULATION; i++) {
     stalks[i] = new Stalk(i * xSpread, Y_START)
   }
 
-  // Draw / eval population
-  for (let i = 0; i < POPULATION; i++) {
-    stalks[i].draw(GROWTH_STEPS)
+  // Evaluate and evolve
+  for (let j = 0; j < GENERATIONS; j++) {
+
+    // Draw / eval population
+    let myGrey = palette[1]
+    myGrey.setAlpha(0.1)
+    let myGreen = palette[3]
+    myGreen.setAlpha(0.9)
+    stroke(lerpColor(myGrey, myGreen, j / GENERATIONS))
+    for (let i = 0; i < POPULATION; i++) {
+      stalks[i].draw(GROWTH_STEPS)
+    }
+
+
+    // Get fit population
+    const fitStalks = shuffleArray(stalks.filter(stalk => stalk.getFit()))
+    console.log("Fit pop: " + fitStalks.length)
+
+    // 85% of fit pop mates
+    // 15% of fit pop mutates
+    const fitDivIdx = Math.floor(fitStalks.length * 0.85)
+    const matingStalks = fitStalks.slice(0, fitDivIdx)
+    const mutatingStalks = fitStalks.slice(fitDivIdx)
+
+    let nextGenStalks = []
+    nextGenStalks.concat(Stalk.getOffspring(matingStalks))
+    nextGenStalks.concat(Stalk.getMutations(mutatingStalks))
+
+    // Fill in next gen with random survivors from the original pop
+    while (nextGenStalks.length < POPULATION) {
+      nextGenStalks.push(stalks[Math.floor(random(stalks.length))])
+    }
+
+    nextGenStalks = shuffleArray(nextGenStalks)
+
+    for (let i = 0; i < POPULATION; i++) {
+      nextGenStalks[i].setX(i * xSpread)
+      nextGenStalks[i].setY(Y_START)
+    }
+
+    stalks = nextGenStalks
   }
-
-  // Get fit population
-  const fitStalks = stalks.filter(stalk => stalk.getFit())
-  console.log("Fit pop: " + fitStalks.length)
-
-
-
 
   if (SAVE_OUTPUT) {
     const basename = TITLE + ':' + TIMESTAMP + ':' + SEED
