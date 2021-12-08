@@ -10,12 +10,12 @@ console.log('WIDTH: ' + WIDTH + 'HEIGHT: ' + HEIGHT)
 const TIMESTAMP = Date.now();
 const SEED = TIMESTAMP
 const POPULATION = 1000
-const GENERATIONS = 50
+const GENERATIONS = 100
 const Y_START = HEIGHT
 const Y_GOAL = HEIGHT * 0.4
 console.log('Y_GOAL: ' + Y_GOAL)
 // Stalks have until GROWTH_STEPS to make it into the end zone
-const GROWTH_STEPS = 100
+const GROWTH_STEPS = 150
 
 // Returns the heading (degrees or radians) given start and end vectors
 function getHeading(vector1, vector2) {
@@ -63,8 +63,8 @@ class Stalk {
   constructor(x, y, angleStdDev, length) {
     this.x = x != null ? x : 0
     this.y = y != null ? y : 0
-    this.angleStdDev = angleStdDev != null ? angleStdDev : random(0, 45)
-    this.length = length != null ? length : random(3, 10)
+    this.angleStdDev = angleStdDev != null ? angleStdDev : random(0, 40)
+    this.length = length != null ? length : random(2, 15)
 
     this.fit = false
   }
@@ -92,7 +92,7 @@ class Stalk {
   }
 
   // Draw runs the simulation at the same time
-  draw(iterations) {
+  evaluate(iterations, draw) {
     const tf = new Transformer()
     tf.push()
     tf.translate(this.x, this.y)
@@ -103,7 +103,8 @@ class Stalk {
       let v2 = createVector(cos(a) * this.length, sin(a) * this.length)
       // dot(v2)
       // bline(v1, v2)
-      line(v1.x, v1.y, v2.x, v2.y)
+      if (draw)
+        line(v1.x, v1.y, v2.x, v2.y)
       tf.translate(v2.x, v2.y)
       tf.rotate(90 + a)
 
@@ -154,16 +155,16 @@ class Stalk {
     return new Stalk(0, 0, a, l)
   }
 
-  static getOffspring(stalks) {
-    const populus = []
-    // Pair each with the two next to it so we get N-1 offspring
-    // from N parents
-    for (let i = 1; i < stalks.length; i++) {
-      populus.push(Stalk.mate(stalks[i - 1], stalks[i]))
+  static getOffspring(stalks, fertility) {
+    let populus = []
+    const len = stalks.length
+    const popTarget = len * fertility
+
+    for (let i = 0; i < popTarget; i++) {
+      populus.push(Stalk.mate(stalks[i % len], stalks[Math.floor(random(len))]))
     }
 
-    // 5% infant mortality rate
-    return populus//.slice(Math.floor(populus.length * 0.05))
+    return populus
   }
 
   static getMutations(stalks) {
@@ -172,8 +173,7 @@ class Stalk {
       populus.push(Stalk.mutate(stalks[i]))
     }
 
-    // 5% mutation death rate
-    return populus//.slice(Math.floor(populus.length * 0.05))
+    return populus
   }
 }
 
@@ -241,7 +241,8 @@ function draw() {
     myGreen.setAlpha(0.9)
     stroke(lerpColor(myGrey, myGreen, j / GENERATIONS))
     for (let i = 0; i < stalks.length; i++) {
-      stalks[i].draw(GROWTH_STEPS)
+      let drawGen = (j === GENERATIONS - 1)
+      stalks[i].evaluate(GROWTH_STEPS, drawGen)
     }
 
 
@@ -251,16 +252,16 @@ function draw() {
 
     // 85% of fit pop mates
     // 15% of fit pop mutates
-    const fitDivIdx = Math.floor(fitStalks.length * 0.85)
+    const fitDivIdx = Math.floor(fitStalks.length * 0.7)
     const matingStalks = fitStalks.slice(0, fitDivIdx)
     const mutatingStalks = fitStalks.slice(fitDivIdx)
 
     let nextGenStalks = []
-    nextGenStalks.concat(Stalk.getOffspring(matingStalks))
+    nextGenStalks.concat(Stalk.getOffspring(matingStalks, 2.5))
     nextGenStalks.concat(Stalk.getMutations(mutatingStalks))
 
     // Fill in next gen with random survivors from the pop
-    while (nextGenStalks.length < POPULATION) {
+    while (nextGenStalks.length < POPULATION * 0.5) {
       const survivor = stalks[Math.floor(random(stalks.length))]
       const clone = Stalk.clone(survivor)
       nextGenStalks.push(clone)
