@@ -12,10 +12,10 @@ const SEED = TIMESTAMP
 const POPULATION = 1000
 const GENERATIONS = 50
 const Y_START = HEIGHT
-const Y_GOAL = HEIGHT * 0.33
+const Y_GOAL = HEIGHT * 0.4
 console.log('Y_GOAL: ' + Y_GOAL)
 // Stalks have until GROWTH_STEPS to make it into the end zone
-const GROWTH_STEPS = 150
+const GROWTH_STEPS = 100
 
 // Returns the heading (degrees or radians) given start and end vectors
 function getHeading(vector1, vector2) {
@@ -60,11 +60,11 @@ function shuffleArray(array) {
 }
 
 class Stalk {
-  constructor(x, y, angleStdDev = null, length = null) {
-    this.x = x
-    this.y = y
-    this.angleStdDev = random(0, 45)
-    this.length = random(2, 5)
+  constructor(x, y, angleStdDev, length) {
+    this.x = x != null ? x : 0
+    this.y = y != null ? y : 0
+    this.angleStdDev = angleStdDev != null ? angleStdDev : random(0, 45)
+    this.length = length != null ? length : random(3, 10)
 
     this.fit = false
   }
@@ -163,7 +163,7 @@ class Stalk {
     }
 
     // 5% infant mortality rate
-    return populus.slice(Math.floor(populus.length * 0.05))
+    return populus//.slice(Math.floor(populus.length * 0.05))
   }
 
   static getMutations(stalks) {
@@ -173,7 +173,7 @@ class Stalk {
     }
 
     // 5% mutation death rate
-    return populus.slice(Math.floor(populus.length * 0.05))
+    return populus//.slice(Math.floor(populus.length * 0.05))
   }
 }
 
@@ -240,7 +240,7 @@ function draw() {
     let myGreen = palette[3]
     myGreen.setAlpha(0.9)
     stroke(lerpColor(myGrey, myGreen, j / GENERATIONS))
-    for (let i = 0; i < POPULATION; i++) {
+    for (let i = 0; i < stalks.length; i++) {
       stalks[i].draw(GROWTH_STEPS)
     }
 
@@ -259,7 +259,7 @@ function draw() {
     nextGenStalks.concat(Stalk.getOffspring(matingStalks))
     nextGenStalks.concat(Stalk.getMutations(mutatingStalks))
 
-    // Fill in next gen with random survivors from the original pop
+    // Fill in next gen with random survivors from the pop
     while (nextGenStalks.length < POPULATION) {
       const survivor = stalks[Math.floor(random(stalks.length))]
       const clone = Stalk.clone(survivor)
@@ -268,7 +268,7 @@ function draw() {
 
     nextGenStalks = shuffleArray(nextGenStalks)
 
-    for (let i = 0; i < POPULATION; i++) {
+    for (let i = 0; i < nextGenStalks.length; i++) {
       nextGenStalks[i].setX(i * xSpread)
       nextGenStalks[i].setY(Y_START)
     }
